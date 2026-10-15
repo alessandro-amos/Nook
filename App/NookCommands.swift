@@ -132,8 +132,8 @@ struct NookCommands: Commands {
 
         // File Section
         CommandGroup(after: .newItem) {
-            Button("New Tab") {
-                windowRegistry.activeWindow?.commandPalette?.open()
+            Button("Nova página") {
+                if let window = windowRegistry.activeWindow { SigmaActions(tabs: browserManager.tabs, window: window).newPage() }
             }
             .modifier(dynamicShortcut(.newTab))
             Button("New Window") {
@@ -147,12 +147,14 @@ struct NookCommands: Commands {
             .keyboardShortcut("n", modifiers: [.command, .shift])
             
             Divider()
-            Button("Open Command Bar") {
-                let currentURL = browserManager.tabs.activeWindowSession?.url.absoluteString ?? ""
-                windowRegistry.activeWindow?.commandPalette?.open(prefill: currentURL, navigateCurrentTab: true)
+            Button("Barra de comando") {
+                let currentURL = browserManager.tabs.activeWindowSession?.url
+                if let window = windowRegistry.activeWindow {
+                    SigmaActions(tabs: browserManager.tabs, window: window)
+                        .openCommandBar(prefill: SigmaNewPage.isNewPage(currentURL) ? "" : currentURL?.absoluteString ?? "", replace: true)
+                }
             }
             .modifier(dynamicShortcut(.focusAddressBar))
-            .disabled(browserManager.tabs.activeWindowSession == nil)
 
             Button("Copy Current URL") {
                 browserManager.copyCurrentURL()
@@ -268,6 +270,47 @@ struct NookCommands: Commands {
             .disabled(
                 browserManager.tabs.activeWindowSession == nil
                     || browserManager.tabs.activeWindowSession?.hasAudioContent != true)
+        }
+
+        // Sigma: concluir, clean up, travar, renomear workspace e folha de atalhos.
+        CommandMenu("Sigma") {
+            let window = windowRegistry.activeWindow
+            Button("Marcar como concluída") {
+                if let window { SigmaActions(tabs: browserManager.tabs, window: window).markDone() }
+            }
+            .keyboardShortcut("d")
+            .disabled(window?.selectedItemID == nil)
+            Button("Limpar workspace…") {
+                if let window { SigmaUIState.of(window).confirmingCleanUp = true }
+            }
+            .keyboardShortcut("k", modifiers: [.command, .shift])
+            Button("Travar / destravar aba") {
+                if let window { SigmaActions(tabs: browserManager.tabs, window: window).toggleLocked() }
+            }
+            .keyboardShortcut("l", modifiers: [.command, .shift])
+            .disabled(window?.selectedItemID == nil)
+            Button("Desfazer última ação") {
+                if let window { SigmaActions(tabs: browserManager.tabs, window: window).undo() }
+            }
+            .keyboardShortcut("z", modifiers: [.command, .shift, .option])
+            Divider()
+            Button("Renomear workspace") {
+                if let window, !window.isIncognito { SigmaUIState.of(window).workspaceEditing = .title }
+            }
+            .keyboardShortcut("w", modifiers: .option)
+            Button("Workspace anterior") {
+                if let window { SigmaActions(tabs: browserManager.tabs, window: window).selectAdjacentSpace(-1) }
+            }
+            .keyboardShortcut(.upArrow, modifiers: [.command, .option])
+            Button("Próximo workspace") {
+                if let window { SigmaActions(tabs: browserManager.tabs, window: window).selectAdjacentSpace(1) }
+            }
+            .keyboardShortcut(.downArrow, modifiers: [.command, .option])
+            Divider()
+            Button("Atalhos") {
+                if let window { SigmaUIState.of(window).showingCheatSheet.toggle() }
+            }
+            .keyboardShortcut("/")
         }
 
         Group {

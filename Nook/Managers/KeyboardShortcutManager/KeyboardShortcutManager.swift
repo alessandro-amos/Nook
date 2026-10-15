@@ -470,7 +470,10 @@ class KeyboardShortcutManager {
 
             // Tab Management
             case .newTab:
-                self.windowRegistry?.activeWindow?.commandPalette?.open()
+                // Sigma: ⌘T cria uma aba "Nova página" com a barra de comando embutida.
+                if let window = self.windowRegistry?.activeWindow {
+                    SigmaActions(tabs: tabs, window: window).newPage()
+                }
             case .closeTab:
                 if let window, !window.isCommandPaletteVisible {
                     // With no tab open (the empty space), Cmd+W closes the window.
@@ -526,8 +529,12 @@ class KeyboardShortcutManager {
 
             // NEW: Missing actions that were only in NookCommands
             case .focusAddressBar:
-                let currentURL = tabs.activeWindowSession?.url.absoluteString ?? ""
-                self.windowRegistry?.activeWindow?.commandPalette?.open(prefill: currentURL, navigateCurrentTab: true)
+                // Sigma: barra de comando sobreposta com o endereço atual; Enter troca a página.
+                let currentURL = tabs.activeWindowSession?.url
+                if let window = self.windowRegistry?.activeWindow {
+                    SigmaActions(tabs: tabs, window: window)
+                        .openCommandBar(prefill: SigmaNewPage.isNewPage(currentURL) ? "" : currentURL?.absoluteString ?? "", replace: true)
+                }
             case .findInPage:
                 browserManager.showFindBar()
             case .zoomIn:

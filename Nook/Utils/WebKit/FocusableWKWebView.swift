@@ -1,5 +1,6 @@
 // Licensed under GPL-3.0. See LICENSE.
 import AppKit
+import NookSettings
 import NookWeb
 @preconcurrency import UserNotifications
 import WebKit
@@ -58,6 +59,21 @@ final class FocusableWKWebView: WKWebView, SessionWebView {
     }
 
     override var acceptsFirstResponder: Bool { true }
+
+    // Sigma: o tema do navegador vale para os sites (prefers-color-scheme), não o do sistema.
+    private var appearanceObserver: (any NSObjectProtocol)?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        appearance = NSApp.appearance
+        guard appearanceObserver == nil else { return }
+        appearanceObserver = NotificationCenter.default.addObserver(
+            forName: .appearanceModeChanged, object: nil, queue: .main
+        ) { [weak self] _ in
+            // O NookApp troca NSApp.appearance no mesmo aviso; aplica depois dele.
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.appearance = NSApp.appearance } }
+        }
+    }
 
     /// Keeps a mini window page's fixed content clear of the window's glass toolbar while the
     /// page scrolls underneath it. Synced in `layout()` so it survives resize, full screen and

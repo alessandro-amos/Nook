@@ -53,8 +53,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
 
     /// Sparkle updater controller for automatic app updates
     lazy var updaterController: SPUStandardUpdaterController = {
+        // Sigma: fork pessoal, sem auto-update (o feed do Nook sobrescreveria o app).
         return SPUStandardUpdaterController(
-            startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
+            startingUpdater: false, updaterDelegate: self, userDriverDelegate: nil)
     }()
 
     // MARK: - Application Lifecycle

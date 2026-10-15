@@ -29,21 +29,14 @@ struct WindowView: View {
 
     var body: some View {
         ZStack {
-            WindowBackground()
-                .contextMenu {
-                    Button("Space Settings...") {
-                        SettingsNavigation.shared.currentSettingsTab = .spaces
-                        openSettings()
-                    }
-                    .disabled(windowState.spaceID.flatMap { tabs.space($0) } == nil)
-                }
-
-            SidebarWebViewStack()
-
-            // Hover-reveal Sidebar overlay (slides in over web content)
-            SidebarHoverOverlayView()
-                .environmentObject(hoverSidebarManager)
-                .environment(windowState)
+            // Sigma: faixa do topo, trilho de workspaces e sidebar próprios no lugar dos do Nook.
+            SigmaWindowLayout {
+                SigmaWebContent()
+            } trailing: {
+                // Airis = chat de IA do Nook, à direita da página.
+                if windowState.isSidebarAIChatVisible { AISidebar() }
+            }
+            .environment(commandPalette)
 
             CommandPaletteView()
             DialogView()
@@ -56,8 +49,8 @@ struct WindowView: View {
                 .zIndex(10000)
 
         }
-        // The window buttons sit in the sidebar's header, so they come and go with it.
-        .background(TrafficLights(visible: windowState.isSidebarVisible || hoverSidebarManager.isOverlayVisible))
+        // Sigma desenha os próprios semáforos; os do sistema ficam sempre ocultos.
+        .background(TrafficLights(visible: false))
         .overlayPreferenceValue(DownloadsButtonAnchorKey.self) { anchor in
             DownloadFlightOverlay(target: anchor)
                 .zIndex(8000)
@@ -320,6 +313,34 @@ struct WindowView: View {
         }
         .padding(.bottom, bordered ? 8 : 0)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// A página dentro do cartão do Sigma: sem barra do topo do Nook, que a pílula de URL substitui.
+    @ViewBuilder
+    private func SigmaWebContent() -> some View {
+        ZStack(alignment: .top) {
+            WebsiteView()
+            WebsiteLoadingIndicator()
+                .allowsHitTesting(false)
+            // Aba "Nova página": a barra de comando no lugar do site.
+            if let session = tabs.selectedSession(in: windowState), SigmaNewPage.isNewPage(session.url) {
+                SigmaNewPageView(itemID: session.itemID)
+            }
+            if let reader = SigmaUIState.of(windowState).reader {
+                SigmaReaderView(content: reader) {
+                    withAnimation(SigmaMotion.fade) { SigmaUIState.of(windowState).reader = nil }
+                }
+                .transition(.opacity)
+            }
+        }
+        .overlay {
+            if aiService.isExecutingTools {
+                ToolExecutionGlowView()
+                    .transition(.opacity.animation(.easeInOut(duration: 0.3)))
+                    .allowsHitTesting(false)
+            }
+        }
+        .background(SigmaPalette.content)
     }
 
     @ViewBuilder

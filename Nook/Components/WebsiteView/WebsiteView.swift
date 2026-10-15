@@ -242,6 +242,13 @@ struct WebsiteView: View {
                     EmptyWebsiteView()
                 }
             }
+            // Sigma: ⌘ sobre um link mostra a prévia da página junto do cursor.
+            if isCommandPressed, let hoveredLink, let url = URL(string: hoveredLink) {
+                SigmaLinkPreviewLayer(url: url)
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
+
             VStack {
                 Spacer()
                 if nookSettings.showLinkStatusBar {
